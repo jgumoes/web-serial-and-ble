@@ -1,4 +1,4 @@
-import CircularBuffer from "../src/FIFOBuffer";
+import CircularBuffer from "../src/lib/FIFOBuffer";
 
 test("inits with an empty array", ()=>{
   const fifo = new CircularBuffer(5);
