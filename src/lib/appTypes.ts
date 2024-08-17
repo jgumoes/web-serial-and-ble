@@ -1,0 +1,1 @@
+export type timeout_t = ReturnType<typeof setTimeout>

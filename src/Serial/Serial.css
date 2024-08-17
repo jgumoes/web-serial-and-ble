@@ -1,0 +1,91 @@
+:root{
+  /* in milliseconds */
+  --rangeInputResetTime: 3000ms;
+  --borderThickness: 20px;
+  --buttonPulseTime: 400ms;
+  --buttonBackground: grey;
+  --rangeButtonBorderRadius: 8px;
+  --rangeValueButtonHeight: 43px;
+  --rangeValueButtonWidth: 88px;
+  --rangeValueButtonContainerHeight: 57px;
+  --rangeValueButtonContainerWidth: 118px;
+}
+
+.serial-container{
+  background-color: bisque;
+}
+
+#serial.optionsContainer{
+  color: black;
+  width: 70%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.loggingOptions{
+  display: flex;
+  flex-direction: column;
+}
+
+.mcuOptions{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.readValueRangeLabel{
+  font-size: large;
+}
+
+.connection-container-footer{
+  display: inline;
+}
+
+.uploadButtonsContainer{
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rangeValueButtonContainer{
+  height: var(--rangeValueButtonContainerHeight);
+  width: calc(var(--rangeValueButtonContainerWidth));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+}
+
+.readValueRangeButton{
+  width: 75%;
+  height: 75%;
+  background: gray;
+  text-align: center;
+}
+
+@keyframes cancelButtonPulse{
+  to {
+    width: 100%;
+    height: 100%;
+    background-color: red;
+  }
+}
+
+#cancel.readValueRangeButton.pressed{
+  animation: cancelButtonPulse var(--buttonPulseTime) ease 0s 2 alternate both;
+}
+
+@keyframes uploadButtonPulse{
+  to {
+    width: 100%;
+    height: 100%;
+    background-color: green;
+  }
+}
+
+#upload.readValueRangeButton.pressed{
+  animation: uploadButtonPulse var(--buttonPulseTime) ease 0s 2 alternate both;
+}

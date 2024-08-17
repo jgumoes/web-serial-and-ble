@@ -1,13 +1,17 @@
 /**
  * Implementation of a circular buffer (aka FIFO)
  */
+
+
+export type buffer_t = (number | string | undefined)[];
+
 class CircularBuffer {
   endPointer = 0;
   unreadValues = false; // true if new values have been pushed since the last read
 
-  buffer: (number | string | undefined)[];
+  buffer: buffer_t;
 
-  constructor(bufferSize) {
+  constructor(bufferSize: number) {
     this.buffer = new Array(bufferSize);
     this.endPointer = 0;
     // for(let i = 0; i < bufferSize; i++){
@@ -26,7 +30,7 @@ class CircularBuffer {
     this.unreadValues = true;
   }
   
-  public getArray(size = this.buffer.length) : (number | string)[] {
+  public getArray(size = this.buffer.length) : buffer_t {
     // todo: throw an error if size is too big
     if(size > this.buffer.length){
       throw new RangeError(`array size ${size} is larger than the buffer length ${this.buffer.length}`)
