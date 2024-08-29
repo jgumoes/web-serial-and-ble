@@ -68,15 +68,25 @@
 .readerValues{
   background-color: gainsboro;
   color: darkgrey;
-  height: 300px;
+  height: 290px;
+  padding: 5px;
+  padding-inline: 10px;
   margin-top: 0px;
   border-bottom-left-radius: var(--borderRadius);
   border-bottom-right-radius: var(--borderRadius);
+  overflow-anchor: auto;
 }
 
 .readerValues#not-connected{
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: unset;
 }
 
+.readerValues#connected{
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column-reverse;
+  color: black;
+}

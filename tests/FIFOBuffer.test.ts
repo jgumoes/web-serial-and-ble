@@ -1,5 +1,12 @@
 import CircularBuffer from "../src/lib/FIFOBuffer";
 
+function idEqualsValue(arr){
+  return arr.map(v => {
+    if(v === undefined){return v}
+    return {id: v, value: v}
+  })
+}
+
 test("inits with an empty array", ()=>{
   const fifo = new CircularBuffer(5);
   expect(fifo.unreadValues).toBe(false)
@@ -13,7 +20,7 @@ describe("pushing a value updates the buffer:", ()=>{
     fifo.push(1);
     expect(fifo.unreadValues).toBe(true)
     const resArr = fifo.getArray()
-    expect(resArr).toEqual([undefined, undefined, 1])
+    expect(resArr).toEqual([undefined, undefined, {id: 0, value: 1}])
     expect(fifo.unreadValues).toBe(false)
   });
 
@@ -24,7 +31,13 @@ describe("pushing a value updates the buffer:", ()=>{
     }
     expect(fifo.unreadValues).toBe(true)
     const resArr = fifo.getArray()
-    expect(resArr).toEqual([0, 1, 2, 3, 4])
+    expect(resArr).toEqual([
+      {id: 0, value:0},
+      {id: 1, value:1},
+      {id: 2, value:2},
+      {id: 3, value:3},
+      {id: 4, value:4}
+    ])
     expect(fifo.unreadValues).toBe(false)
   });
 
@@ -36,13 +49,25 @@ describe("pushing a value updates the buffer:", ()=>{
     }
     expect(fifo.unreadValues).toBe(true)
     const resArr = fifo.getArray()
-    expect(resArr).toEqual([2, 3, 4, 5, 6])
+    expect(resArr).toEqual([
+      {id: 2, value: 2},
+      {id: 3, value: 3},
+      {id: 4, value: 4},
+      {id: 5, value: 5},
+      {id: 6, value: 6}
+    ])
     expect(fifo.unreadValues).toBe(false)
 
     fifo.push(i)
     expect(fifo.unreadValues).toBe(true)
     const resArr2 = fifo.getArray()
-    expect(resArr2).toEqual([3, 4, 5, 6, 7])
+    expect(resArr2).toEqual([
+      {id: 3, value: 3},
+      {id: 4, value: 4},
+      {id: 5, value: 5},
+      {id: 6, value: 6},
+      {id: 7, value: 7}
+    ])
     expect(fifo.unreadValues).toBe(false)
   });
 })
@@ -56,7 +81,8 @@ describe("fifo.getArray() returns correct array for numbers", ()=>{
     for(let i = 0; i < iEnd; i++){
       fifo.push(i)
     }
-    expect(fifo.getArray()).toEqual(expectedResults.slice(testEnd, testEnd + 5))
+    const expArr = idEqualsValue(expectedResults.slice(testEnd, testEnd + 5))
+    expect(fifo.getArray()).toEqual(expArr)
   })
 })
 
@@ -67,7 +93,7 @@ describe("fifo.getArray(size)", ()=>{
       fifo.push(i)
     }
     const resArr = fifo.getArray(3)
-    expect(resArr).toEqual([2,3,4])
+    expect(resArr).toEqual(idEqualsValue([2,3,4]))
   });
 
   test("returns the correct array when size < bufferSize and the array crosses the buffer boundary", ()=>{
@@ -76,7 +102,7 @@ describe("fifo.getArray(size)", ()=>{
       fifo.push(i)
     }
     const resArr = fifo.getArray(4)
-    expect(resArr).toEqual([3, 4, 5, 6])
+    expect(resArr).toEqual(idEqualsValue([3, 4, 5, 6]))
   });
 
   test("returns the latest value when size = 1", ()=>{
@@ -85,7 +111,7 @@ describe("fifo.getArray(size)", ()=>{
       fifo.push(i)
     }
     const resArr = fifo.getArray(1)
-    expect(resArr).toEqual([6])
+    expect(resArr).toEqual(idEqualsValue([6]))
   });
 
   test("returns the correct array when called multiple times", ()=>{
@@ -95,11 +121,11 @@ describe("fifo.getArray(size)", ()=>{
       fifo.push(i)
     }
     const resArr = fifo.getArray(3)
-    expect(resArr).toEqual([4, 5, 6])
+    expect(resArr).toEqual(idEqualsValue([4, 5, 6]))
     const resArr2 = fifo.getArray(1)
-    expect(resArr2).toEqual([6])
+    expect(resArr2).toEqual(idEqualsValue([6]))
     const resArr3 = fifo.getArray()
-    expect(resArr3).toEqual([2, 3, 4, 5, 6])
+    expect(resArr3).toEqual(idEqualsValue([2, 3, 4, 5, 6]))
   });
 
   test("fifo.getArray(0) throws an error", ()=>{
@@ -140,7 +166,7 @@ describe("fifo.getArray(size)", ()=>{
       fifo.push(i)
     }
     const resArr = fifo.getArray(3)
-    const expArr = expectedResults.slice(testEnd+7, testEnd + 10)
+    const expArr = idEqualsValue(expectedResults.slice(testEnd+7, testEnd + 10))
     expect(resArr).toEqual(expArr)
   })
 })

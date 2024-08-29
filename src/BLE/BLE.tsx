@@ -62,6 +62,7 @@ function BLEReader(){
         id='ble'
         title='Hold Values'
         valueList={null}
+        connected={false}
       />
       <div className='singleValues'>
         <CurrentValueReader />

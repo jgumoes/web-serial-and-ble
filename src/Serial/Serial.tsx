@@ -1,37 +1,39 @@
 import './Serial.css'
 import '../sharedContainers.css'
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { ReaderBox } from '../sharedComponents'
 import { timeout_t } from '../lib/appTypes'
+import WebSerial from './serialLogic'
 
-function SerialConnectionButton() {
-  // if not connected, show button requesting connection
-  // if connected, show device info and a disconnect button
-  const [isConnected, setIsConnected] = useState(false)
-  if(isConnected){
-    return(
-      <div className="connection-button" id='connected' onClick={e => setIsConnected(!isConnected)}>
-        <h2>Connected to Bleep</h2>
-      </div>
-    )
+const SerialConnectionButton = () => {
+  console.time("SerialConnectionButton")
+  const serialState = useSyncExternalStore(WebSerial.subscribe, WebSerial.getState)
+  const id = serialState.connected ? 'connected' : 'not-connected'
+  const text = serialState.connected ? `Connected to ${serialState.deviceName}` : 'Click to connect to serial device'
+  console.log("connection state: ", serialState.connected)
+  const handleClick = (_event: any) => {
+    console.time("handleClick")
+    WebSerial.toggleConnection();
+    console.timeEnd("handleClick")
   }
-  else {
-    return(
-      <div className="connection-button" id='not-connected' onClick={e => setIsConnected(!isConnected)}>
-        <h2>Click to connect to serial device</h2>
-      </div>
-    )
-  }
+  console.timeEnd("SerialConnectionButton")
+  return(
+    <div className="connection-button" id={id} onClick={handleClick}>
+      <h2>{text}</h2>
+    </div>
+  )
 }
 
-function SerialReader(){
+const SerialReader = ()=>{
   // todo: before a device is connected, there should be an animation of a usb being plugged slightly in, then being turned, and loop
+  const serialState = useSyncExternalStore(WebSerial.subscribe, WebSerial.getState)
   return(
     <div className="readerContainer" id='serial'>
       <ReaderBox
         id='serial'
         title='Serial Monitor'
-        valueList={null}
+        valueList={serialState.buffer}
+        connected={serialState.connected}
       />
     </div>
   )
@@ -60,9 +62,6 @@ function RangeInputButton(props:{
 
   const pendingClassName = 'pending'
   const notPendingClassName = 'notPending'
-
-  console.log("rendering buttons")
-  console.log(rangeTimeoutID)
   return(
     <div className='rangeValueButtonContainer' id={id}>
       <button
@@ -162,12 +161,12 @@ function SerialOptions(){
 export default function SerialContainer(){
   // todo: create connection state
   return(
-    <div className="serial-container interface-container">
-      <div className='connection-container'>
-        <SerialConnectionButton />
+      <div className="serial-container interface-container">
+        <div className='connection-container'>
+          <SerialConnectionButton />
+        </div>
+        <SerialReader />
+    `   <SerialOptions />`
       </div>
-      <SerialReader />
-  `   <SerialOptions />`
-    </div>
   )
 }
