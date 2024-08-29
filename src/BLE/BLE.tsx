@@ -1,26 +1,24 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import './BLE.css'
 import '../sharedContainers.css'
 import { ReaderBox } from '../sharedComponents'
+import WebBluetooth from './bleLogic'
 
 function BLEConnectionButton() {
   // if not connected, show button requesting connection
   // if connected, show device info and a disconnect button
-  const [isConnected, setIsConnected] = useState(false)
-  if(isConnected){
-    return(
-      <div className="connection-button" id='connected' onClick={e => setIsConnected(!isConnected)}>
-        <h2>Connected to Bleep</h2>
-      </div>
-    )
+  const bleState = useSyncExternalStore(WebBluetooth.subscribe, WebBluetooth.getState)
+  
+  const id = bleState.connected ? 'connected' : 'not-connected'
+  const text = bleState.connected ? `Connected to ${bleState.deviceName}` : 'Click to connect to serial device'
+  const handleClick = (_event: any) => {
+    WebBluetooth.toggleConnection();
   }
-  else {
-    return(
-      <div className="connection-button" id='not-connected' onClick={e => setIsConnected(!isConnected)}>
-        <h2>Click to connect to BLE device</h2>
-      </div>
-    )
-  }
+  return(
+    <div className="connection-button" id={id} onClick={handleClick}>
+      <h2>{text}</h2>
+    </div>
+  )
 }
 
 function CurrentValueReader(){
@@ -56,16 +54,20 @@ function ReadValueInterval(){
 
 function BLEReader(){
   // todo: before a device is connected, there should be the DVD screen, but it's BLE
+  const bleState = useSyncExternalStore(WebBluetooth.subscribe, WebBluetooth.getState)
+  console.log("current value: ", bleState.currentValue)
   return(
     <div className='readerContainer' id='ble'>
       <ReaderBox 
         id='ble'
         title='Hold Values'
-        valueList={null}
-        connected={false}
+        valueList={bleState.buffer}
+        connected={bleState.connected}
       />
       <div className='singleValues'>
-        <CurrentValueReader />
+        <div className='holdValueReader'>
+          Current Value: {bleState.currentValue}
+        </div>
         <ReadValueInterval />
       </div>
     </div>
