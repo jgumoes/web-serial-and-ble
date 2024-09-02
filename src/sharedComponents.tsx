@@ -13,7 +13,7 @@ export function ReaderBox(props: {
         {props.title}
       </h2>
       <div className="readerValues" id={props.connected ? "connected" : "not-connected"}>
-        {props.connected ? props.valueList?.map(v => <div key={v?.id}>key: {v?.id}; value:{v?.value}</div>) : <h2>Not Connected</h2>}
+        {props.connected ? props.valueList?.map(v => <div key={v?.id}>{v?.value}</div>) : <h2>Not Connected</h2>}
       </div>
     </div>
   )

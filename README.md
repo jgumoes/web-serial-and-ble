@@ -1,70 +1,60 @@
-# Getting Started with Create React App
+# About
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is a simple app to play around with browser-based communications with microcontrollers. Specifically, it reads and rights values and settings using serial and bluetooth.
 
-## Available Scripts
+One day, I might include databases to test simple logging.
 
-In the project directory, you can run:
+# Communication Expectations
 
-### `npm start`
+## Serial Communication
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The web app will parse lines with '\n'.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Settings
 
-### `npm test`
+**Getting**
+The request to get the current settings should be `getSettings\n`.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The expected return should be a valid json object with all the settings (but no newlines):
 
-### `npm run build`
+```
+currentSettings:{deviceName: {name},readInterval: 200, printNotify: true, printHolds: true, printOther: false, valueMin: 0, valueMax: 180}\n
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+`printOther` refers to all everything that isn't a current reading or hold value, including debugging/warnings/whatever.
+`valueMin` and `valueMax` refer to how the raw data is interpolated
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+**Setting**
+Requests to change the settings should have the form:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
+set {setting}: {newValue}\n
 
-### `npm run eject`
+i.e.
+set printNotify: true\n
+set printHolds: false\n
+set readInterval: 3\n
+set valueMin: -180\n
+set valueMax: 180\n
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The device should respond similarly, with an integer success code:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```
+set {setting}: {code}\n
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+i.e.
+set showRead: 1\n       // success
+set showHold: 0\n       // non-specific failure
+set readInterval: 2\n   // failed: value out of bounds
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+If 0 is returned, the app will re-attempt up to 3 times before abandoning the setting update.
 
-## Learn More
+### Recieved Values
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+This app expects the device to send data in the form `valueType: {value}\n`
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+the value type can be `value` or `hold`
 
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Any other recieve type can still be printed by the app, but if this app is extended to include databases, they will be ignored. This should allow the reader to act as a serial console, as well as a value log.

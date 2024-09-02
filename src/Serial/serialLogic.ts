@@ -5,24 +5,36 @@
 // import CircularBuffer, { buffer_t } from "../lib/FIFOBuffer"
 import {interval_t} from '../lib/appTypes'
 import CircularBuffer, { buffer_t } from '../lib/FIFOBuffer';
+import SerialBuffer from './serialBuffer';
+
+interface serialObjects_i {
+  port: SerialPort | null,
+  reader: ReadableStreamDefaultReader<Uint8Array> | null,
+}
+
+const serialObjects: serialObjects_i = {
+  port: null,
+  reader: null,
+}
 
 interface serialOptions_i {
+  "connectedDeviceName": string,
+  "valueBounds": [number, number],
   "readValues": boolean;
   "writeValues": boolean;
   "other": boolean;
 }
 
-// type serialOptionKeys_t = keyof serialOptions_i;
-
-let connectedDeviceName = ''
-let mcuReadInterval = 1000;
-let mcuReadOptions: serialOptions_i = {
+let mcuOptions: serialOptions_i = {
+  "connectedDeviceName": '',
+  "valueBounds": [0, 0],
   "readValues": false,
   "writeValues": false,
   "other": false,
 }
-let valueBounds: [number, number] = [0, 0];
-let fakeIntervalID: interval_t | undefined = undefined;
+
+let mcuReadIntervalTime = 100;
+let serialReadInterval: interval_t | undefined = undefined;
 
 let connected: boolean = false
 // let bufferSubscribers = new Set<() => void>();
@@ -32,7 +44,7 @@ let subscribers = new Set<() => void>();
  * number of elements in the buffer
  */
 const bufferSize = 20
-const fifo = new CircularBuffer(bufferSize);
+const fifo = new SerialBuffer(new CircularBuffer(bufferSize))
 
 type serialState_t = {
   "connected": boolean,
@@ -45,7 +57,7 @@ type serialState_t = {
  */
 let serialState: serialState_t = {
   "connected": connected,
-  "deviceName": connectedDeviceName,
+  "deviceName": mcuOptions.connectedDeviceName,
   "buffer": []
 }
 
@@ -65,7 +77,7 @@ function updateSerialState(){
   }
   serialState = {
     "connected": connected,
-    "deviceName": connectedDeviceName,
+    "deviceName": mcuOptions.connectedDeviceName,
     "buffer": buffer
   }
   subscribers.forEach((callback)=>(callback()))
@@ -75,9 +87,10 @@ function updateSerialState(){
  * Requests the settings of the connected device, and updates the class variables accordingly
  */
 function getDeviceSettings(){
-  connectedDeviceName = "Fake MCU (Fakey McFakington Industries Inc.)"
-  valueBounds = [0, 3.3];
-  mcuReadOptions = {
+  // TODO: make real
+  mcuOptions = {
+    "connectedDeviceName": "Fake MCU (Fakey McFakington Industries Inc.)",
+    "valueBounds": [0, 360],
     "readValues": true,
     "writeValues": true,
     "other": true,
@@ -87,64 +100,92 @@ function getDeviceSettings(){
 
 /**
  * Write a new interval time to the mcu. If newInterval <= 0, the interval is just cleared but mcuReadInterval isn't overwritten
- * @param newInterval new read interval in milliseconds
+ * @param newIntervalTime new read interval in milliseconds
  */
-function checkForUpdates(newInterval: number = mcuReadInterval){
+function checkForUpdates(newIntervalTime: number = mcuReadIntervalTime){
   // todo: write the new interval to the mcu, and update when confirmation response is recieved
-  console.time("checkForUpdates")
-  clearInterval(fakeIntervalID)
-  if(newInterval <= 0){
+  clearInterval(serialReadInterval)
+  if(newIntervalTime <= 0){
     return
   }
-  fakeIntervalID = setInterval(()=>{
-    const [min, max] = valueBounds
-    const fakeValue = Math.round((Math.random()*(max-min) - min)*100)/100
-    fifo.push(fakeValue)
-    updateSerialState()
-  }, newInterval)
+  serialReadInterval = setInterval(()=>{
+    if(serialObjects.reader === null){
+      WebSerial.disconnect();
+    }
+    else{
+      serialObjects.reader.read().then(function processText({done, value}){
+        if(done){
+            // Google is lying to you! they are blatantly deceiving us, trying controlling our perspective of the world!
+            // 'done' is never true! it lies! the buffer empties and still it returns false! It IS false!
+            console.log(`done: ${done}`);
+            return;
+        }
+        let strValue = String.fromCharCode.apply(null, value); // ignore it it's fine
+        fifo.add(strValue);
+      // reader.releaseLock();
+      })
+      updateSerialState()
+      return;
+    }
+  }, newIntervalTime)
 
-  mcuReadInterval = newInterval
-  console.timeEnd("checkForUpdates")
-
+  mcuReadIntervalTime = newIntervalTime
 }
 
 const WebSerial = {
   /**
    * initiate connection, and set up an event to buffer text values
    */
-  connect(){
+  async connect(){
     // todo: first, send and process a settings request to the mcu. then, send a values request to start a stream of values
     // the device should return an options object that can be parsed as json
-    getDeviceSettings()
-    connected = true;
-    checkForUpdates(mcuReadInterval)
-    console.error("WebSerialClass.connect() is still using fake values")
-    console.time("WebSerial.connect() is alerting subscribers")
-    subscribers.forEach((callback)=>{callback()})
-    console.timeEnd("WebSerial.connect() is alerting subscribers")
-
+    try {
+      serialObjects.port = await navigator.serial.requestPort();
+      await serialObjects.port.open({ baudRate: 9600 });
+      if(serialObjects.port.readable !== null){
+        serialObjects.reader = serialObjects.port.readable.getReader();
+      }
+      else{
+        throw new Error("serialObjects.port.readable is null");
+      }
+      connected = true
+      checkForUpdates(mcuReadIntervalTime)
+      getDeviceSettings()
+    } catch (error) {
+      console.error(error)
+      this.disconnect()
+    }
+    
     updateSerialState()
+    subscribers.forEach((callback)=>{callback()})
   },
   
-  disconnect(){
+  async disconnect(){
+    // TODO: send stop signal
     checkForUpdates(0)
-    connectedDeviceName = '';
-    mcuReadOptions = {
-    "readValues": false,
-    "writeValues": false,
-    "other": false,
-  }
-    valueBounds = [0, 0];
+    // mcuOptions = {
+    //   "connectedDeviceName": '',
+    //   "valueBounds": [0, 0],
+    //   "readValues": false,
+    //   "writeValues": false,
+    //   "other": false,
+    // }
+    mcuOptions.connectedDeviceName = ''
+    if(serialObjects.reader !== null){
+      await serialObjects.reader.releaseLock();
+    }
+    if(serialObjects.port !== null){
+      await serialObjects.port.close();
+    }
     connected = false;
-    console.error("WebSerialClass.disconnect() is still using fake values")
 
     updateSerialState()
     subscribers.forEach((callback)=>{callback()})
   },
 
-  getDeviceName() : string {return connectedDeviceName;},
+  getDeviceName() : string {return mcuOptions.connectedDeviceName;},
   
-  getReadInterval() {return mcuReadInterval;},
+  getReadInterval() {return mcuReadIntervalTime;},
   setReadInterval(newInterval: number){
     checkForUpdates(newInterval);
   },
